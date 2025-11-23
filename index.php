@@ -6,11 +6,9 @@ require_once 'config/db.php';
 $pagina = isset($_GET['p']) ? $_GET['p'] : 'mapa'; 
 $paginas_publicas = ['login', 'cadastro', 'processa_login', 'processa_cadastro'];
 
-// Lógica de Redirecionamento
 if (!isset($_SESSION['usuario_id'])) {
     if (!in_array($pagina, $paginas_publicas)) { header("Location: index.php?p=login"); exit(); }
 } else {
-    // Se logado, impede acesso direto a login/cadastro
     if ($pagina == 'login' || $pagina == 'cadastro') { header("Location: index.php?p=mapa"); exit(); }
 }
 if ($pagina == 'login' && isset($_SESSION['usuario_id'])) $pagina = 'mapa';
@@ -23,9 +21,6 @@ if(isset($_SESSION['usuario_id'])) {
         if($res_adm) { $row_adm = $res_adm->fetch_assoc(); $is_admin = $row_adm['is_admin'] ?? 0; }
     }
 }
-
-// Verifica se está na página de login ou cadastro (páginas públicas)
-$is_public_page = in_array($pagina, $paginas_publicas);
 ?>
 <!DOCTYPE html>
 <html lang="pt-br">
@@ -34,20 +29,13 @@ $is_public_page = in_array($pagina, $paginas_publicas);
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Street Car Underground</title>
     
-    <?php if (!$is_public_page): ?>
-        <link rel="stylesheet" href="assets/css/style.css">
-    <?php else: ?>
-        <link rel="stylesheet" href="assets/css/login-style.css">
-    <?php endif; ?>
-    
+    <link rel="stylesheet" href="assets/css/style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;700&display=swap" rel="stylesheet">
     
     <style>
-        /* Estilos base (Mantidos) */
         body { background: #000; color: #fff; font-family: 'Arial', sans-serif; overflow: hidden; margin: 0; padding: 0; }
 
-        /* Estilos de Debug (Mantidos) */
         .debug-modal {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0,0,0,0.9); z-index: 20000;
@@ -154,12 +142,11 @@ $is_public_page = in_array($pagina, $paginas_publicas);
     </script>
     <?php endif; ?>
 
-    <?php if (!$is_public_page): ?>
-        <audio id="audio-bgm" loop><source src="assets/sounds/bgm.mp3" type="audio/mpeg"></audio>
-        <audio id="audio-click"><source src="assets/sounds/click.mp3" type="audio/mpeg"></audio>
-        <audio id="audio-hover"><source src="assets/sounds/hover.mp3" type="audio/mpeg"></audio>
-        <script src="assets/js/audio.js"></script>
-    <?php endif; ?>
+    <audio id="audio-bgm" loop><source src="assets/sounds/bgm.mp3" type="audio/mpeg"></audio>
+    <audio id="audio-click"><source src="assets/sounds/click.mp3" type="audio/mpeg"></audio>
+    <audio id="audio-hover"><source src="assets/sounds/hover.mp3" type="audio/mpeg"></audio>
+
+    <script src="assets/js/audio.js"></script>
 
 </body>
 </html>
