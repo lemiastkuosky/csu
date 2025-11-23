@@ -66,7 +66,7 @@ if (file_exists($arquivo_fisico)) {
     @keyframes fog-drift-real { 0% { transform: translateX(-400px) scale(0.8); opacity: 0; } 10% { opacity: var(--fog-opacity); } 90% { opacity: var(--fog-opacity); } 100% { transform: translateX(2200px) scale(1.5); opacity: 0; } }
     
     .snowflake { position: absolute; top: -20px; background: white; border-radius: 50%; opacity: 0.8; pointer-events: none; z-index: 6; will-change: transform; }
-    .raindrop { position: absolute; top: -100px; width: 2px; height: 80px; background: linear-gradient(to bottom, rgba(255,255,255,0), rgba(255,255,255,0.5)); pointer-events: none; z-index: 6; will-change: transform; }
+    .raindrop { position: absolute; top: -100px; width: 2px; height: 80px; background: linear-gradient(to bottom, rgba(52, 152, 219, 0), rgba(52, 152, 219, 0.7)); pointer-events: none; z-index: 6; will-change: transform; }
     @keyframes snow-drop-realistic { 0% { transform: translateY(0) translateX(0) rotate(0deg); opacity: 0.9; } 100% { transform: translateY(1300px) translateX(calc(50px + var(--drift))) rotate(360deg); opacity: 0.3; } }
     @keyframes rain-drop-realistic { 0% { transform: translateY(0); opacity: 0; } 20% { opacity: 1; } 100% { transform: translateY(1300px); opacity: 0; } }
 
@@ -191,10 +191,6 @@ if (file_exists($arquivo_fisico)) {
         currentX = (viewport.offsetWidth - 1800) / 2; currentY = (viewport.offsetHeight - 1200) / 2; 
         checkBounds(); 
         
-        // --- CORREÇÃO: INICIALIZA TEMPERATURA IMEDIATAMENTE ---
-        // Evita o "--" inicial chamando a função com um valor padrão
-        updateTopBarWeather(currentWeather);
-
         syncGameEnvironment(); 
         startTraffic();
     };
@@ -240,45 +236,88 @@ if (file_exists($arquivo_fisico)) {
     const weatherTypes = ['limpo', 'limpo', 'chuva', 'nublado', 'tempestade', 'neve']; 
     let currentWeather = 'limpo'; let particleInterval = null; let stormTimeout = null;
 
+    // FUNÇÃO CRÍTICA: GARANTE QUE O CLIMA E O TEMPO SEJAM APLICADOS VISUALMENTE
     function syncGameEnvironment() {
         fetch('api/clima.php').then(r => r.json()).then(data => {
-            if (data.modo === 'dia') { world.classList.remove('mode-night'); world.classList.add('mode-day'); } 
-            else { world.classList.remove('mode-day'); world.classList.add('mode-night'); }
-            
-            // Só atualiza se mudou, para não piscar
-            if (data.clima !== currentWeather) { 
-                currentWeather = data.clima; 
-                applyWeatherClasses(); 
+            const modo = data.modo; // 'dia' ou 'noite'
+            const clima = data.clima; // 'neve', 'chuva', 'limpo', etc.
+
+            // 1. Limpa as classes de modo atuais
+            world.classList.remove('mode-night', 'mode-day');
+
+            let targetModeIsNight = (modo === 'noite');
+
+            // 2. EXCEÇÃO CLIMÁTICA: Escurece se for dia, mas estiver chovendo ou tempestade
+            if (modo === 'dia' && (clima === 'chuva' || clima === 'tempestade')) {
+                targetModeIsNight = true; // Força o modo de escurecimento
             }
-            // Garante que a temperatura esteja sempre lá
-            if(typeof updateTopBarWeather === "function") updateTopBarWeather(currentWeather);
+
+            // 3. APLICA O MODO FINAL (FORÇADO OU TEMPORAL)
+            if (targetModeIsNight) { 
+                world.classList.add('mode-night'); 
+            } else {
+                world.classList.add('mode-day'); 
+            }
+            
+            // 4. Atualiza a temperatura na TopBar
+            if(typeof updateTopBarWeather === "function") updateTopBarWeather(clima);
+
+            // 5. ATUALIZA CLIMA E EFEITOS
+            if (clima !== currentWeather) {
+                currentWeather = clima;
+                applyWeatherClasses(); 
+            } else if (clima !== 'limpo') {
+                applyWeatherClasses();
+            }
+            currentWeather = clima; 
             
         }).catch(e => {
             console.log("Modo Offline: Usando clima local");
-            // Fallback local se a API falhar
             if(typeof updateTopBarWeather === "function") updateTopBarWeather(currentWeather);
+            applyWeatherClasses();
         });
     }
 
+    // === FUNÇÃO CORRIGIDA PARA ATUALIZAR O VISUAL DO TOPBAR ===
     function updateTopBarWeather(type) {
         const iconEl = document.getElementById('weather-icon');
         const tempEl = document.getElementById('weather-temp');
         const boxEl = document.getElementById('weather-box');
+        const textEl = document.getElementById('weather-text'); // NOVO: Elemento do nome do clima
         
         // Se os elementos da Topbar não existirem ainda, sai.
-        if(!iconEl || !tempEl) return;
+        if(!iconEl || !tempEl || !textEl) return;
 
         const isNight = world.classList.contains('mode-night');
         
+        // Lógica base (Céu Limpo)
         let iconClass = isNight ? 'fa-moon' : 'fa-sun'; 
         let color = isNight ? '#f1c40f' : '#f39c12'; 
-        let tempBase = isNight ? 18 : 28; 
+        let tempBase = isNight ? 18 : 28; // Base para 'limpo' (Noite mais fria)
         let weatherText = 'Céu Limpo';
 
-        if(type === 'chuva') { iconClass = isNight ? 'fa-cloud-moon-rain' : 'fa-cloud-sun-rain'; color='#3498db'; tempBase=isNight ? 15 : 22; weatherText='Chuvoso'; }
-        if(type === 'tempestade') { iconClass = 'fa-bolt'; color='#e74c3c'; tempBase=isNight ? 14 : 19; weatherText='Tempestade'; }
-        if(type === 'nublado') { iconClass = isNight ? 'fa-cloud-moon' : 'fa-cloud-sun'; color='#bdc3c7'; tempBase=isNight ? 17 : 24; weatherText='Neblina'; }
-        if(type === 'neve') { iconClass = 'fa-snowflake'; color='#fff'; tempBase=isNight ? -5 : 0; weatherText='Neve'; }
+        // AJUSTE DE CLIMA: Sobrescreve a base apenas se o clima não for limpo
+        if(type === 'chuva') { 
+            iconClass = isNight ? 'fa-cloud-moon-rain' : 'fa-cloud-sun-rain'; 
+            color='#3498db'; 
+            tempBase = isNight ? 15 : 22; 
+            weatherText='Chuva'; // Corrigido para "Chuva"
+        } else if(type === 'tempestade') { 
+            iconClass = 'fa-bolt'; 
+            color='#e74c3c'; 
+            tempBase = isNight ? 14 : 19; 
+            weatherText='Tempestade'; 
+        } else if(type === 'nublado') { 
+            iconClass = isNight ? 'fa-cloud-moon' : 'fa-cloud-sun'; 
+            color='#bdc3c7'; 
+            tempBase = isNight ? 17 : 24; 
+            weatherText='Nublado'; // Corrigido para "Nublado"
+        } else if(type === 'neve') { 
+            iconClass = 'fa-snowflake'; 
+            color='#fff'; 
+            tempBase = isNight ? -5 : 0; // Temperaturas baixas para Neve
+            weatherText='Neve'; 
+        }
 
         // Cálculo simples para variar a temperatura um pouquinho
         const finalTemp = Math.floor(tempBase + (Math.random() * 2 - 1));
@@ -290,33 +329,108 @@ if (file_exists($arquivo_fisico)) {
         if(tempEl.innerText === '--°C' || Math.random() > 0.9) {
             tempEl.innerText = finalTemp + '°C'; 
         }
+
+        // NOVO: Atualiza o texto do clima (ex: Chuva)
+        textEl.innerText = weatherText;
         
         if(boxEl) boxEl.title = weatherText;
     }
+    // === FIM FUNÇÃO CORRIGIDA ===
+
 
     function applyWeatherClasses() {
+        // Limpa classes de clima e efeitos antigos
         world.classList.remove('weather-rain', 'weather-storm', 'weather-cloudy', 'weather-snow');
         if(particleInterval) clearInterval(particleInterval); 
         if(stormTimeout) clearTimeout(stormTimeout); 
         document.querySelectorAll('.snowflake, .raindrop, .fog-cloud').forEach(el => el.remove());
         flashOverlay.style.opacity = 0; 
 
-        if(currentWeather === 'chuva') { world.classList.add('weather-rain'); startRaining(80); }
-        if(currentWeather === 'tempestade') { world.classList.add('weather-storm'); startRaining(20); triggerLightning(); }
-        if(currentWeather === 'nublado') { world.classList.add('weather-cloudy'); startFog(); }
-        if(currentWeather === 'neve') { world.classList.add('weather-snow'); startSnowing(); }
+        // 🌧️ GERA INTENSIDADE ALEATÓRIA (quanto menor o intervalo, mais intenso)
+        const intensityFactor = Math.random() * (0.8 - 0.2) + 0.2; // 0.2 (muito) a 0.8 (pouco)
+
+        // Aplica novas classes e inicia novos efeitos
+        if(currentWeather === 'chuva') { 
+            world.classList.add('weather-rain'); 
+            startRaining(intensityFactor); 
+        }
+        if(currentWeather === 'tempestade') { 
+            world.classList.add('weather-storm'); 
+            startRaining(0.2); // Chuva forte na tempestade
+            triggerLightning(intensityFactor); // Intensidade de raios baseada no fator
+        }
+        if(currentWeather === 'nublado') { 
+            world.classList.add('weather-cloudy'); 
+            startFog(); 
+        }
+        if(currentWeather === 'neve') { 
+            world.classList.add('weather-snow'); 
+            startSnowing(intensityFactor); 
+        }
         
         // Atualiza visual imediatamente
         updateTopBarWeather(currentWeather);
     }
 
     function createFogCloud() { const f=document.createElement('div'); f.className='fog-cloud'; f.style.width='500px'; f.style.height='500px'; f.style.top=Math.random()*80+'%'; f.style.animation='fog-drift-real 20s linear'; world.appendChild(f); setTimeout(()=>f.remove(),20000); }
-    function createSnowflake() { const f=document.createElement('div'); f.className='snowflake'; f.style.width='4px'; f.style.height='4px'; f.style.left=Math.random()*100+'%'; f.style.animation='snow-drop-realistic 10s linear'; world.appendChild(f); setTimeout(()=>f.remove(),10000); }
+    
+    // --- FUNÇÕES DE CLIMA COM INTENSIDADE VARIÁVEL ---
+    
+    // 🌨️ GERA NEVE (INTERVALO É INVERSAMENTE PROPORCIONAL À INTENSIDADE)
+    function startSnowing(intensity) {
+        // Intervalo de 50ms (muito forte) a 400ms (fraco)
+        const interval = 50 + (intensity * 350); 
+        if(particleInterval) clearInterval(particleInterval);
+        particleInterval = setInterval(createSnowflake, interval); 
+    }
+
+    // 🌧️ GERA CHUVA (INTERVALO É INVERSAMENTE PROPORCIONAL À INTENSIDADE)
+    function startRaining(intensity) {
+        // Intervalo de 20ms (muito forte) a 100ms (fraco)
+        const interval = 20 + (intensity * 80);
+        if(particleInterval) clearInterval(particleInterval);
+        particleInterval = setInterval(createRaindrop, interval);
+    }
+
+    // ⚡ GERA RAIOS (INTERVALO É INVERSAMENTE PROPORCIONAL À INTENSIDADE)
+    function triggerLightning(intensity) {
+        if(currentWeather !== 'tempestade') return;
+        
+        // Tempo entre raios: de 1500ms (forte) a 5000ms (fraco)
+        const nextStrikeTime = 1500 + (intensity * 3500); 
+        
+        flashOverlay.style.opacity=0.9; 
+        setTimeout(()=>flashOverlay.style.opacity=0,80); 
+        setTimeout(()=>flashOverlay.style.opacity=0.6,150); 
+        setTimeout(()=>flashOverlay.style.opacity=0,300); 
+        
+        if(stormTimeout) clearTimeout(stormTimeout);
+        stormTimeout=setTimeout(() => triggerLightning(intensity), nextStrikeTime);
+    }
+
+
+    // --- FUNÇÕES DE CRIAÇÃO DE PARTÍCULAS ---
+    
+    function createSnowflake() { 
+        const f=document.createElement('div'); 
+        f.className='snowflake'; 
+        f.style.width=Math.random() * 3 + 2 + 'px'; // Variância de 2px a 5px
+        f.style.height=f.style.width; 
+        f.style.left=Math.random()*100+'%'; 
+
+        // Adiciona a variável --drift para o movimento lateral no keyframe
+        f.style.setProperty('--drift', (Math.random() * 100 - 50) + 'px'); 
+
+        const animDuration = Math.random() * 5 + 8 + 's'; // Duração entre 8s e 13s
+        f.style.animation=`snow-drop-realistic ${animDuration} linear`; 
+        
+        world.appendChild(f); 
+        // Remove o elemento após a animação
+        setTimeout(()=>f.remove(), parseFloat(animDuration) * 1000); 
+    }
+
     function createRaindrop() { const f=document.createElement('div'); f.className='raindrop'; f.style.left=Math.random()*100+'%'; f.style.animation='rain-drop-realistic 0.4s linear'; world.appendChild(f); setTimeout(()=>f.remove(),400); }
-    function startSnowing() { particleInterval = setInterval(createSnowflake, 200); }
-    function startRaining(s) { particleInterval = setInterval(createRaindrop, s); }
-    function startFog() { particleInterval = setInterval(createFogCloud, 1000); }
-    function triggerLightning() { if(currentWeather!=='tempestade')return; flashOverlay.style.opacity=0.9; setTimeout(()=>flashOverlay.style.opacity=0,80); setTimeout(()=>flashOverlay.style.opacity=0.6,150); setTimeout(()=>flashOverlay.style.opacity=0,300); stormTimeout=setTimeout(triggerLightning,Math.random()*5000+1500); }
+    function startFog() { particleInterval = setInterval(createFogCloud, 1000); } // Não usa intensidade, mas mantido
 
     function startTraffic() { setInterval(() => createTrafficCar('normal'), 1200); setInterval(() => { if(Math.random() > 0.7) triggerChase(); }, 15000); setInterval(() => { if(Math.random() > 0.6) createAircraft(); }, 10000); }
     function createTrafficCar(type='normal') {
