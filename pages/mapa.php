@@ -241,7 +241,7 @@ if (file_exists($arquivo_fisico)) {
         fetch('api/clima.php').then(r => r.json()).then(data => {
             const modo = data.modo; // 'dia' ou 'noite'
             const clima = data.clima; // 'neve', 'chuva', 'limpo', etc.
-            const onlineCount = data.online; // <-- NOVO: Captura a contagem de online
+            const onlineCount = data.online; // Captura a contagem de online
 
             // 1. Limpa as classes de modo atuais
             world.classList.remove('mode-night', 'mode-day');
@@ -263,7 +263,7 @@ if (file_exists($arquivo_fisico)) {
             // 4. Atualiza a temperatura na TopBar
             if(typeof updateTopBarWeather === "function") updateTopBarWeather(clima);
 
-            // 5. NOVO: ATUALIZA CONTAGEM DE JOGADORES ONLINE
+            // 5. ATUALIZA CONTAGEM DE JOGADORES ONLINE
             const onlineEl = document.getElementById('online-count');
             if (onlineEl) {
                 onlineEl.innerText = onlineCount;
