@@ -2,6 +2,9 @@
 // api/clima.php
 require_once '../config/db.php';
 
+// CORREÇÃO: Define o fuso horário no início para todos os cálculos baseados em data/hora.
+date_default_timezone_set('America/Sao_Paulo'); 
+
 // Configurações
 $climas_possiveis = ['limpo', 'limpo', 'chuva', 'nublado', 'tempestade', 'neve'];
 $duracao_minima = 30; // Minutos
@@ -12,6 +15,7 @@ $sql = "SELECT * FROM config_jogo WHERE id = 1";
 $res = $conn->query($sql);
 $estado = $res->fetch_assoc();
 
+// Pega o tempo atual
 $agora = time();
 
 // 2. Verifica se precisa trocar o clima (Se o tempo expirou)
@@ -35,15 +39,15 @@ if ($agora >= $estado['proxima_mudanca']) {
 }
 
 // 3. Define Dia ou Noite baseado na HORA DO SERVIDOR (Brasil)
-date_default_timezone_set('America/Sao_Paulo');
-$hora = (int)date('H');
-$modo_tempo = ($hora >= 6 && $hora < 18) ? 'dia' : 'noite';
+$hora = (int)date('H'); 
+// CORRIGIDO: Dia é de 6h a 18h (inclusivo). Noite é de 19h a 5h (inclusivo).
+$modo_tempo = ($hora >= 6 && $hora < 19) ? 'dia' : 'noite';
 
 // 4. Retorna JSON para o jogo
 header('Content-Type: application/json');
 echo json_encode([
     'clima' => $estado['clima_atual'],
-    'modo' => $modo_tempo, // Agora o servidor decide se é dia ou noite
+    'modo' => $modo_tempo, // Servidor decide se é dia ou noite
     'proxima_troca' => $estado['proxima_mudanca']
 ]);
 ?>
