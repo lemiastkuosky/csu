@@ -117,7 +117,6 @@ $saude = 100 - ($dado_top['danificado'] ?? 0);
 
     /* DIREITA */
     .hud-right { display: flex; align-items: center; justify-content: flex-end; height: 100%; }
-    /* BOTÃO LOGOFF ESTÁ VOLTANDO PARA AQUI */
     .tray-buttons { display: flex; align-items: center; gap: 10px; margin-right: 15px; } 
 
     .sys-icon { color: #aaa; font-size: 16px; cursor: pointer; width: 32px; height: 32px; display: flex; justify-content: center; align-items: center; border-radius: 5px; transition: 0.2s; }
@@ -162,6 +161,23 @@ $saude = 100 - ($dado_top['danificado'] ?? 0);
         margin-left: 2px;
     }
     /* === FIM ESTILOS CLIMA === */
+    
+    /* --- Novo Widget Online --- */
+    .online-widget {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        font-size: 14px;
+        font-weight: bold;
+        color: #fff;
+        padding: 0 10px;
+        border-right: 1px solid rgba(255, 255, 255, 0.15); /* Separador visual */
+    }
+    #online-count {
+        color: #2ecc71; /* Cor verde para destaque */
+        font-size: 16px;
+    }
+    /* --- Fim Widget Online --- */
     
     .system-clock { display: flex; flex-direction: column; align-items: center; min-width: 60px; }
     .clock-time { font-size: 18px; font-weight: 700; color: #fff; line-height: 1; }
@@ -239,6 +255,10 @@ $saude = 100 - ($dado_top['danificado'] ?? 0);
         </div>
         <div class="tray-separator"></div>
         <div class="system-info-group">
+            <div class="online-widget" title="Jogadores Online">
+                <i class="fas fa-users" style="color:#2ecc71;"></i>
+                <span id="online-count">—</span>
+            </div>
             <div id="weather-box" class="weather-widget" title="Carregando...">
                 <i id="weather-icon" class="fas fa-sun weather-icon" style="color:#f1c40f;"></i>
                 <span id="weather-temp" class="weather-temp">--°C</span>
