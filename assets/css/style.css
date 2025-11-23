@@ -56,6 +56,25 @@ input, select, button { outline: none; font-family: inherit; }
 .nav-icon { color: #777; font-size: 14px; cursor: pointer; transition: 0.2s; }
 .nav-icon:hover { color: white; }
 
+/* === NOVO: ESTILOS PARA O WIDGET DE JOGADORES ONLINE === */
+.online-widget {
+    /* Define o widget de online, garantindo que ele não conflite com o CSS do topbar.php */
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 14px;
+    font-weight: bold;
+    color: var(--text-primary);
+    padding: 0 10px;
+    /* Adiciona uma separação à direita se o elemento for colocado lá */
+    border-right: 1px solid rgba(255, 255, 255, 0.15); 
+}
+#online-count {
+    color: var(--green-neon); /* Usa a variável green-neon para a contagem */
+    font-size: 16px;
+}
+/* === FIM NOVO === */
+
 .bottom-news-bar {
     position: fixed; bottom: 0; left: 0; width: 100%; height: 30px;
     background: var(--bg-modal); border-top: 1px solid #222;
