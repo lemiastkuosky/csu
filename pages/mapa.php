@@ -241,6 +241,7 @@ if (file_exists($arquivo_fisico)) {
         fetch('api/clima.php').then(r => r.json()).then(data => {
             const modo = data.modo; // 'dia' ou 'noite'
             const clima = data.clima; // 'neve', 'chuva', 'limpo', etc.
+            const onlineCount = data.online; // <-- NOVO: Captura a contagem de online
 
             // 1. Limpa as classes de modo atuais
             world.classList.remove('mode-night', 'mode-day');
@@ -262,7 +263,13 @@ if (file_exists($arquivo_fisico)) {
             // 4. Atualiza a temperatura na TopBar
             if(typeof updateTopBarWeather === "function") updateTopBarWeather(clima);
 
-            // 5. ATUALIZA CLIMA E EFEITOS
+            // 5. NOVO: ATUALIZA CONTAGEM DE JOGADORES ONLINE
+            const onlineEl = document.getElementById('online-count');
+            if (onlineEl) {
+                onlineEl.innerText = onlineCount;
+            }
+
+            // 6. ATUALIZA CLIMA E EFEITOS
             if (clima !== currentWeather) {
                 currentWeather = clima;
                 applyWeatherClasses(); 
@@ -283,7 +290,7 @@ if (file_exists($arquivo_fisico)) {
         const iconEl = document.getElementById('weather-icon');
         const tempEl = document.getElementById('weather-temp');
         const boxEl = document.getElementById('weather-box');
-        const textEl = document.getElementById('weather-text'); // NOVO: Elemento do nome do clima
+        const textEl = document.getElementById('weather-text'); // Elemento do nome do clima
         
         // Se os elementos da Topbar não existirem ainda, sai.
         if(!iconEl || !tempEl || !textEl) return;
@@ -301,7 +308,7 @@ if (file_exists($arquivo_fisico)) {
             iconClass = isNight ? 'fa-cloud-moon-rain' : 'fa-cloud-sun-rain'; 
             color='#3498db'; 
             tempBase = isNight ? 15 : 22; 
-            weatherText='Chuva'; // Corrigido para "Chuva"
+            weatherText='Chuva';
         } else if(type === 'tempestade') { 
             iconClass = 'fa-bolt'; 
             color='#e74c3c'; 
@@ -311,7 +318,7 @@ if (file_exists($arquivo_fisico)) {
             iconClass = isNight ? 'fa-cloud-moon' : 'fa-cloud-sun'; 
             color='#bdc3c7'; 
             tempBase = isNight ? 17 : 24; 
-            weatherText='Nublado'; // Corrigido para "Nublado"
+            weatherText='Nublado';
         } else if(type === 'neve') { 
             iconClass = 'fa-snowflake'; 
             color='#fff'; 
