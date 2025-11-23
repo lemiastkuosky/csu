@@ -4,7 +4,7 @@ if(!isset($_SESSION['usuario_id'])) exit;
 
 $uid = $_SESSION['usuario_id'];
 
-// 1. Busca TODOS os carros
+// 1. Busca TODOS os carros do jogador + Detalhes Técnicos + Status RPG + Placa/Ano/Chassi
 $sql_carros = "
     SELECT 
         g.*, g.chassi_codigo, g.placa,
@@ -22,24 +22,28 @@ $meus_carros = [];
 if(isset($conn)) {
     $res = $conn->query($sql_carros);
     while($row = $res->fetch_assoc()) {
-        // Cálculos
+        // Cálculos de Performance (Base + Upgrades)
         $lvl_motor = $row['nivel_motor'] ?? 0;
         $lvl_turbo = $row['nivel_turbo'] ?? 0;
         $lvl_peso  = $row['nivel_alivio'] ?? 0;
 
         $cv_ganho = ($lvl_motor * 15) + ($lvl_turbo * 40);
         $row['potencia_total'] = $row['potencia_base'] + $cv_ganho;
+        
         $kg_perda = ($lvl_peso * 20);
         $row['peso_total'] = $row['peso_base'] - $kg_perda;
 
+        // Barras Visuais (0-100)
         $row['bar_vel'] = min(100, $row['vel_base'] + ($cv_ganho / 5));
         $row['bar_acc'] = min(100, $row['acc_base'] + ($cv_ganho / 4));
         $row['bar_ctrl'] = $row['ctrl_base'];
         
+        // Dados RPG (Combustivel, Oleo, Dano)
         $row['tanque'] = $row['tanque_atual'] ?? 100;
         $row['oleo'] = $row['nivel_oleo'] ?? 100;
         $row['saude'] = 100 - ($row['danificado'] ?? 0);
         
+        // Textos Padrão (Fallback)
         if(empty($row['chassi_codigo'])) $row['chassi_codigo'] = "N/A-" . $row['id'];
         if(empty($row['ano_modelo'])) $row['ano_modelo'] = "????";
         if(empty($row['placa'])) $row['placa'] = "SEM-PLACA";
@@ -48,21 +52,22 @@ if(isset($conn)) {
     }
 }
 
-// Placeholder
+// Placeholder se garagem vazia
 if(empty($meus_carros)) {
     $meus_carros[] = [
         'id' => 0, 'nome' => 'Carro Exemplo', 'img_url' => 'https://images.unsplash.com/photo-1533473359331-0135ef1b58bf', 
-        'historia' => 'Sem história.', 'potencia_base'=>100, 'potencia_total'=>100, 'peso_base'=>1000, 'peso_total'=>1000, 
+        'historia' => 'Um carro simples para começar sua jornada.', 'potencia_base'=>100, 'potencia_total'=>100, 'peso_base'=>1000, 'peso_total'=>1000, 
         'bar_vel'=>30, 'bar_acc'=>30, 'bar_ctrl'=>50, 'danificado'=>0, 'equipado'=>0,
-        'tracao'=>'FWD', 'motor'=>'I4', 'aspiracao'=>'Natural',
+        'tracao'=>'FWD', 'motor'=>'I4', 'aspiracao'=>'Natural', 'arranque_total'=>9.5,
         'tanque'=>100, 'oleo'=>100, 'saude'=>100,
-        'chassi_codigo'=>'TEST-001', 'ano_modelo'=>'2024/2025', 'placa'=>'DEV-0001'
+        'chassi_codigo'=>'EX-0000', 'ano_modelo'=>'2024', 'placa'=>'TESTE'
     ];
 }
 
-// --- FUNDO ---
+// --- FUNDO DA GARAGEM ---
 $bg_local = "assets/imgs/garagem.jpg";
 $bg_fisico = realpath(__DIR__ . '/../assets/imgs/garagem.jpg');
+
 if (file_exists($bg_fisico)) {
     $bg_css = "url('$bg_local')";
 } else {
@@ -78,7 +83,7 @@ if (file_exists($bg_fisico)) {
         background-repeat: no-repeat; background-position: center center; background-size: cover; 
         background-color: #111; z-index: -1; 
     }
-    .garage-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.7); backdrop-filter: blur(2px); }
+    .garage-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); }
 
     /* --- BOTÃO VOLTAR --- */
     .btn-back-site {
@@ -87,27 +92,19 @@ if (file_exists($bg_fisico)) {
         background: rgba(0, 0, 0, 0.6); border: 1px solid rgba(255, 255, 255, 0.2);
         border-radius: 30px; color: #fff; font-family: 'Oswald'; text-decoration: none; 
         z-index: 100; backdrop-filter: blur(5px); transition: 0.3s; font-size: 12px;
-        cursor: pointer; /* Importante para div */
+        cursor: pointer;
     }
     .btn-back-site:hover { background: #d32f2f; border-color: #d32f2f; }
 
     .garage-container { padding: 140px 50px 50px 50px; max-width: 1200px; margin: 0 auto; }
 
-    /* --- MENU --- */
+    /* --- MENU NAVEGAÇÃO --- */
     .garage-nav { display: flex; gap: 15px; margin-bottom: 30px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 20px; }
-    
-    .nav-item { 
-        flex: 1; padding: 12px; text-align: center; 
-        background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); 
-        color: #aaa; text-decoration: none; font-family: 'Oswald'; font-size: 14px; 
-        border-radius: 5px; transition: all 0.3s; 
-        display: flex; justify-content: center; align-items: center; gap: 10px;
-        cursor: pointer; /* Importante */
-    }
+    .nav-item { flex: 1; padding: 12px; text-align: center; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: #aaa; text-decoration: none; font-family: 'Oswald'; font-size: 14px; border-radius: 5px; transition: all 0.3s; display: flex; justify-content: center; align-items: center; gap: 10px; cursor: pointer; }
     .nav-item:hover { background: rgba(255,255,255,0.1); color: #fff; transform: translateY(-2px); }
     .nav-item.active { background: #3498db; color: white; border-color: #3498db; box-shadow: 0 0 15px rgba(52, 152, 219, 0.3); }
 
-    /* --- GRID --- */
+    /* --- GRID DE CARROS --- */
     .garage-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 20px; }
 
     .car-card {
@@ -117,21 +114,38 @@ if (file_exists($bg_fisico)) {
     .car-card:hover { transform: translateY(-4px); background: rgba(40, 40, 40, 0.9); border-color: #555; }
     .car-card.selected-card { border-color: #3498db; box-shadow: 0 0 20px rgba(52, 152, 219, 0.3); }
 
+    /* FOTO DO CARRO */
     .car-image-box { position: relative; width: 100%; height: 130px; overflow: hidden; border-bottom: 1px solid #333; }
     .car-thumb { width: 100%; height: 100%; object-fit: cover; }
 
-    /* INFO */
+    /* BOTÃO "i" (Sobre a foto) */
+    .info-btn {
+        position: absolute; top: 8px; left: 8px;
+        width: 24px; height: 24px; border-radius: 50%;
+        background: rgba(0,0,0,0.8); border: 1px solid rgba(255,255,255,0.5);
+        color: #fff; display: flex; justify-content: center; align-items: center;
+        font-size: 11px; transition: 0.2s; z-index: 10;
+    }
+    .info-btn:hover { background: #3498db; border-color: #3498db; transform: scale(1.1); }
+
+    /* BADGE EQUIPADO (Sobre a foto) */
+    .equipped-badge { position: absolute; top: 8px; right: 8px; background: #2ecc71; color: #000; font-weight: bold; font-size: 9px; padding: 2px 6px; border-radius: 3px; z-index: 5; }
+
+    /* INFO DO CARD (Parte Cinza) */
     .card-info { padding: 12px; }
-    
+
+    /* Chassi e Ano */
     .card-top-info {
         display: flex; justify-content: space-between; margin-bottom: 6px; 
         font-family: monospace; font-size: 9px; color: #888; border-bottom: 1px solid #444; padding-bottom: 4px;
     }
     .vin-code { letter-spacing: 0.5px; }
 
+    /* Cabeçalho do Card (Nome + Placa) */
     .card-header-flex { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
     .card-title { font-family: 'Oswald'; font-size: 16px; color: white; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 120px; }
     
+    /* PLACA NO CARD */
     .mini-plate {
         background: white; border: 1px solid #777; border-radius: 2px;
         display: flex; flex-direction: column; overflow: hidden; height: 18px;
@@ -144,22 +158,14 @@ if (file_exists($bg_fisico)) {
         text-transform: uppercase;
     }
 
+    /* STATUS RPG (Combustível, Óleo, Lataria) */
     .rpg-stats { display: flex; justify-content: space-between; background: rgba(0,0,0,0.4); padding: 6px; border-radius: 4px; }
     .rpg-item { display: flex; align-items: center; gap: 4px; font-size: 10px; color: #aaa; font-weight: bold; }
     .text-fuel { color: #f1c40f; } .text-oil { color: #bdc3c7; } .text-hp { color: #3498db; } .text-danger { color: #e74c3c; }
 
-    .equipped-badge { position: absolute; top: 8px; right: 8px; background: #2ecc71; color: #000; font-weight: bold; font-size: 9px; padding: 2px 6px; border-radius: 3px; z-index: 5; }
 
-    .info-btn {
-        position: absolute; top: 8px; left: 8px; width: 26px; height: 26px; border-radius: 50%;
-        background: rgba(0,0,0,0.8); border: 1px solid rgba(255,255,255,0.3);
-        color: #fff; display: flex; justify-content: center; align-items: center;
-        font-size: 12px; transition: 0.2s; z-index: 10;
-    }
-    .info-btn:hover { background: #3498db; border-color: #3498db; transform: scale(1.1); }
-
-    /* --- MODAL --- */
-    .car-modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 2000; display: none; justify-content: center; align-items: center; backdrop-filter: blur(5px); }
+    /* --- MODAL COMPACTO --- */
+    .car-modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 2000; display: none; justify-content: center; align-items: center; backdrop-filter: blur(4px); }
     .car-modal-content { width: 750px; height: 420px; background: #111; border: 1px solid #333; border-radius: 8px; display: flex; overflow: hidden; position: relative; box-shadow: 0 0 50px rgba(0,0,0,1); animation: fadeIn 0.2s ease; }
     @keyframes fadeIn { from { opacity:0; transform: scale(0.98); } to { opacity:1; transform: scale(1); } }
     
