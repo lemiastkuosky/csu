@@ -1,0 +1,11 @@
+{
+    "carros": [
+        { "id": 1, "name": "Fusca Blindado", "price": 1500, "speed": 120, "defense": 30 },
+        { "id": 2, "name": "Honda Civic", "price": 25000, "speed": 200, "defense": 50 }
+    ],
+    "pecas": [],
+    "config": {
+        "missao_mult": 1.0,
+        "hospital_custo": 500
+    }
+}
